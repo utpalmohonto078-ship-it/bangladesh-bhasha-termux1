@@ -1,20 +1,19 @@
 # Fresh V2 status
 
-Implemented in this first foundation:
-- Lexer
-- AST nodes
-- Pratt expression parser
+Implemented:
+- Lexer, AST nodes, Pratt expression parser
 - Semantic variable checks
-- IR generation
-- Bytecode validation
-- Stack-based VM
-- Bengali and English basic syntax
-- Automated initial tests
+- IR generation, bytecode validation, stack-based VM
+- Bengali and English syntax
+- Functions, recursion, argument count checks
+- GLOBAL (including inside nested if/else/repeat blocks)
+- if / else branches and repeat loops
+- Automated tests (19 passing)
 
-Not yet implemented:
-- Functions, scopes and GLOBAL
-- Branches and loops
-- Collections
+Not yet implemented in V2 (some exist in V1):
+- while loops
+- Collections (lists, strings builtins)
+- Input builtin
 - Exceptions
 - OOP
 - Modules and package manager

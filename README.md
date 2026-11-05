@@ -2,17 +2,45 @@
 
 Founder & Project Architect: Utpal Kumar Mohonto (Choton)
 
-Initial capabilities:
-- Custom .bb language files
-- LET variables
-- PRINT output
-- Safe arithmetic expression evaluator
-- Basic Python syntax analyzer
-- Pattern-based security scanner
+বাংলা কীওয়ার্ডে লেখা একটি প্রোগ্রামিং ভাষা। কম্পাইলার ও স্ট্যাক-ভিত্তিক VM পাইথনে লেখা।
 
-Future modules:
-- Native compiler and runtime
-- Standard library
-- Browser and API integrations
-- Web and app development
-- Expanded static analysis
+## দুটি সংস্করণ
+
+- **V1** (প্রজেক্টের মূল ফোল্ডার): সাত ভাষার কীওয়ার্ড (bn, en, ja, zh, ko, fa, ru), বাংলা আইডেন্টিফায়ার, `input`, লিস্ট ও লিস্ট এলিমেন্ট অ্যাসাইনমেন্ট, নেগেটিভ টেস্টসহ।
+- **V2** (`fresh_v2/`): পরিষ্কার স্তরবিন্যাসে নতুন ভিত্তি: লেক্সার, পার্সার, সেমান্টিক চেক, IR, বাইটকোড, VM।
+
+## V2 এর ভাষা (বাংলা ও ইংরেজি কীওয়ার্ড)
+
+| বাংলা | English | কাজ |
+|---|---|---|
+| সংখ্যা | let / var | ভেরিয়েবল |
+| দেখাও | print | আউটপুট |
+| সত্য / মিথ্যা | true / false | বুলিয়ান |
+| যদি / নাহলে / শেষ | if / else / end | শর্ত |
+| পুনরাবৃত্তি N / শেষ | repeat N / end | N বার লুপ |
+| ফাংশন / ফেরত | function / return | ফাংশন |
+| গ্লোবাল | global | ফাংশনের ভেতরে গ্লোবাল ভেরিয়েবল |
+
+উদাহরণ:
+
+    সংখ্যা total = 2
+    ফাংশন change()
+    গ্লোবাল total
+    total = total * 3
+    ফেরত total
+    শেষ
+    দেখাও change()
+
+## টেস্ট চালানো
+
+সব টেস্ট এক কমান্ডে:
+
+    bash check_all.sh
+
+এতে V1 মাল্টিলিঙ্গুয়াল, V1 নেগেটিভ ও V2 রিগ্রেশন টেস্ট চলে।
+
+## পরিকল্পনা
+
+- `while` লুপ, স্ট্রিং ও লিস্টের আরও বিল্টইন
+- V1 ও V2 এর ফিচার একত্র করা
+- স্ট্যান্ডার্ড লাইব্রেরি, REPL, ডিবাগার
