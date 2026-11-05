@@ -3,3 +3,5 @@ reports/
 build/
 *.bak*
 __pycache__/
+FRESH_V2_BUILD.sh
+MASTER_BUILD.sh
