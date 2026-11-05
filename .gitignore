@@ -1,4 +1,5 @@
+backups/
+reports/
 build/
-*.bak
-*.bak2
+*.bak*
 __pycache__/
