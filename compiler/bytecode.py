@@ -118,7 +118,7 @@ def compile_ir(data):
     for item in source:
         if item.get("op") == "FUNCTION":
             match = re.fullmatch(
-                r"(?:FUNCTION|ফাংশন)\s+([A-Za-z_]\w*)\s*\((.*?)\)",
+                r"(?:FUNCTION|ফাংশন)\s+([A-Za-z_\u0985-\u09B9\u09DC-\u09DF][\w\u09BC-\u09CD\u09D7\u0985-\u09B9\u09DC-\u09DF\u09E6-\u09EF]*)\s*\((.*?)\)",
                 item.get("source", "")
             )
             if not match:
@@ -129,7 +129,7 @@ def compile_ir(data):
             params = [p.strip() for p in raw_params.split(",") if p.strip()]
             if len(set(params)) != len(params):
                 raise ValueError(f"Duplicate parameter in {name}")
-            if any(not re.fullmatch(r"[A-Za-z_]\w*", p) for p in params):
+            if any(not re.fullmatch(r"[A-Za-z_\u0985-\u09B9\u09DC-\u09DF][\w\u09BC-\u09CD\u09D7\u0985-\u09B9\u09DC-\u09DF\u09E6-\u09EF]*", p) for p in params):
                 raise ValueError(f"Invalid parameter in {name}")
             if name in functions:
                 raise ValueError(f"Duplicate function: {name}")
@@ -186,7 +186,7 @@ def compile_ir(data):
             if blocks:
                 raise ValueError(f"Line {line}: nested function is unsupported")
             name = re.fullmatch(
-                r"(?:FUNCTION|ফাংশন)\s+([A-Za-z_]\w*)\s*\(.*\)",
+                r"(?:FUNCTION|ফাংশন)\s+([A-Za-z_\u0985-\u09B9\u09DC-\u09DF][\w\u09BC-\u09CD\u09D7\u0985-\u09B9\u09DC-\u09DF\u09E6-\u09EF]*)\s*\(.*\)",
                 item["source"]
             ).group(1)
             skip = len(code)

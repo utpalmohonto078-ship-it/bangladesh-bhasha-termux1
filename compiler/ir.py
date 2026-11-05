@@ -1,4 +1,5 @@
 import json
+import unicodedata
 import re
 import sys
 from pathlib import Path
@@ -15,12 +16,12 @@ def compile_source(source):
             continue
 
         match = re.fullmatch(
-            r"(?:LET|সংখ্যা|লেখা|তালিকা)\s+([A-Za-z_]\w*)\s*=\s*(.+)", line
+            r"(?:LET|সংখ্যা|লেখা|তালিকা)\s+([A-Za-z_\u0985-\u09B9\u09DC-\u09DF][\w\u09BC-\u09CD\u09D7\u0985-\u09B9\u09DC-\u09DF\u09E6-\u09EF]*)\s*=\s*(.+)", line
         )
         if match:
             instructions.append({
                 "op": "LET",
-                "name": match.group(1),
+                "name": unicodedata.normalize("NFKC", match.group(1)),
                 "value": match.group(2),
                 "line": number
             })
@@ -54,7 +55,7 @@ def compile_source(source):
         elif line.startswith(("FUNCTION ", "ফাংশন ")):
             instructions.append({
                 "op": "FUNCTION",
-                "source": line,
+                "source": unicodedata.normalize("NFKC", line),
                 "line": number
             })
         elif line.startswith(("RETURN ", "ফেরত ")):
@@ -65,13 +66,13 @@ def compile_source(source):
             })
         else:
             assign = re.fullmatch(
-                r"([A-Za-z_]\w*)\s*=(?!=)\s*(.+)", line
+                r"([A-Za-z_\u0985-\u09B9\u09DC-\u09DF][\w\u09BC-\u09CD\u09D7\u0985-\u09B9\u09DC-\u09DF\u09E6-\u09EF]*)\s*=(?!=)\s*(.+)", line
             )
-            call = re.fullmatch(r"[A-Za-z_]\w*\s*\(.*\)", line)
+            call = re.fullmatch(r"[A-Za-z_\u0985-\u09B9\u09DC-\u09DF][\w\u09BC-\u09CD\u09D7\u0985-\u09B9\u09DC-\u09DF\u09E6-\u09EF]*\s*\(.*\)", line)
             if assign:
                 instructions.append({
                     "op": "LET",
-                    "name": assign.group(1),
+                    "name": unicodedata.normalize("NFKC", assign.group(1)),
                     "value": assign.group(2),
                     "line": number
                 })
