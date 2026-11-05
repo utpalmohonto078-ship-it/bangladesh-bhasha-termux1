@@ -1,4 +1,4 @@
-EXT_OPS = {"LEN", "TOSTR", "TONUM", "LIST_ADD", "BUILD_LIST", "INDEX", "INPUT"}
+EXT_OPS = {"LEN", "TOSTR", "TONUM", "LIST_ADD", "BUILD_LIST", "INDEX", "INPUT", "LIST_SET"}
 MAX_LIST = 10000
 
 def _err(line, msg):
@@ -72,8 +72,23 @@ def _input(item, stack, line, pop):
         _err(line, "string limit exceeded")
     stack.append(text)
 
+def _lset(item, stack, line, pop):
+    val = pop()
+    idx = pop()
+    lst = pop()
+    if type(lst) is not list:
+        _err(line, "first argument must be a list")
+    if type(idx) is not int:
+        _err(line, "index must be an integer")
+    if not -len(lst) <= idx < len(lst):
+        _err(line, "index out of range")
+    out = list(lst)
+    out[idx] = val
+    stack.append(out)
+
 _HANDLERS = {
     "INPUT": _input,
+    "LIST_SET": _lset,
     "BUILD_LIST": _build, "INDEX": _index, "LEN": _len,
     "TOSTR": _tostr, "TONUM": _tonum, "LIST_ADD": _add,
 }
