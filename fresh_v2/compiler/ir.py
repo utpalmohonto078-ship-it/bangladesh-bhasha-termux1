@@ -3,6 +3,7 @@ from . import ast_nodes as A
 def generate(program):
     code = []
     functions = {}
+    loops = []
 
     def expr(node):
         if isinstance(node, A.Number):
@@ -77,22 +78,48 @@ def generate(program):
                 else:
                     code[jf]["target"] = len(code)
 
+            elif isinstance(stmt, A.Break):
+                loop = loops[-1]
+                loop["breaks"].append(len(code))
+                op = "LOOP_BREAK" if loop["kind"] == "repeat" else "JUMP"
+                code.append({"op": op, "target": -1})
+
+            elif isinstance(stmt, A.Continue):
+                loop = loops[-1]
+                loop["continues"].append(len(code))
+                code.append({"op": "JUMP", "target": -1})
+
             elif isinstance(stmt, A.Repeat):
                 expr(stmt.count)
                 begin = len(code)
                 code.append({"op": "LOOP_BEGIN", "target": -1})
+                loops.append({"kind": "repeat", "breaks": [], "continues": []})
                 block(stmt.body)
+                next_index = len(code)
                 code.append({"op": "LOOP_NEXT", "target": begin + 1})
-                code[begin]["target"] = len(code)
+                end = len(code)
+                code[begin]["target"] = end
+                loop = loops.pop()
+                for i in loop["breaks"]:
+                    code[i]["target"] = end
+                for i in loop["continues"]:
+                    code[i]["target"] = next_index
 
             elif isinstance(stmt, A.While):
                 begin = len(code)
                 expr(stmt.condition)
                 exit_jump = len(code)
                 code.append({"op": "JUMP_IF_FALSE", "target": -1})
+                loops.append({"kind": "while", "breaks": [], "continues": []})
                 block(stmt.body)
                 code.append({"op": "JUMP", "target": begin})
-                code[exit_jump]["target"] = len(code)
+                end = len(code)
+                code[exit_jump]["target"] = end
+                loop = loops.pop()
+                for i in loop["breaks"]:
+                    code[i]["target"] = end
+                for i in loop["continues"]:
+                    code[i]["target"] = begin
 
     # Functions are placed before the main program.
     # A jump prevents normal execution from entering function bodies.

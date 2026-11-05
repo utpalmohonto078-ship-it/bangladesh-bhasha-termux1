@@ -1,4 +1,6 @@
 from . import ast_nodes as A
+from runtime.stdlib import BUILTINS
+from .type_checker import check_types
 
 def analyze(program):
     top_globals = set()
@@ -39,34 +41,41 @@ def analyze(program):
             elif isinstance(stmt, A.While):
                 collect_locals(stmt.body, result)
 
-    def expression(node, scope, in_function):
+    def expression(node, scope, in_function, init_mode=False):
         if isinstance(node, A.Variable):
-            if node.name not in scope and node.name not in top_globals:
+            if init_mode:
+                if node.name not in scope:
+                    raise NameError(f"Undefined variable: {node.name}")
+            elif node.name not in scope and node.name not in top_globals:
                 raise NameError(f"Undefined variable: {node.name}")
 
         elif isinstance(node, A.Call):
-            if node.name not in functions:
+            if node.name in functions:
+                expected = len(functions[node.name].params)
+            elif node.name in BUILTINS:
+                expected = BUILTINS[node.name][0]
+            else:
                 raise NameError(f"Unknown function: {node.name}")
-            expected = len(functions[node.name].params)
+
             if len(node.args) != expected:
                 raise TypeError(
                     f"{node.name}: expected {expected} arguments, "
                     f"got {len(node.args)}"
                 )
             for arg in node.args:
-                expression(arg, scope, in_function)
+                expression(arg, scope, in_function, init_mode)
 
         elif isinstance(node, A.Binary):
-            expression(node.left, scope, in_function)
-            expression(node.right, scope, in_function)
+            expression(node.left, scope, in_function, init_mode)
+            expression(node.right, scope, in_function, init_mode)
 
         elif isinstance(node, A.Unary):
-            expression(node.operand, scope, in_function)
+            expression(node.operand, scope, in_function, init_mode)
 
         elif not isinstance(node, (A.Number, A.String, A.Boolean)):
             raise TypeError(f"Unsupported expression: {type(node).__name__}")
 
-    def statements(body, scope, in_function, declared_globals):
+    def statements(body, scope, in_function, declared_globals, loop_depth=0):
         for stmt in body:
             if isinstance(stmt, A.Declare):
                 if stmt.name in scope:
@@ -87,16 +96,20 @@ def analyze(program):
 
             elif isinstance(stmt, A.If):
                 expression(stmt.condition, scope, in_function)
-                statements(stmt.body, scope, in_function, declared_globals)
-                statements(stmt.otherwise, scope, in_function, declared_globals)
+                statements(stmt.body, scope, in_function, declared_globals, loop_depth)
+                statements(stmt.otherwise, scope, in_function, declared_globals, loop_depth)
 
             elif isinstance(stmt, A.Repeat):
                 expression(stmt.count, scope, in_function)
-                statements(stmt.body, scope, in_function, declared_globals)
+                statements(stmt.body, scope, in_function, declared_globals, loop_depth + 1)
 
             elif isinstance(stmt, A.While):
                 expression(stmt.condition, scope, in_function)
-                statements(stmt.body, scope, in_function, declared_globals)
+                statements(stmt.body, scope, in_function, declared_globals, loop_depth + 1)
+
+            elif isinstance(stmt, (A.Break, A.Continue)):
+                if loop_depth == 0:
+                    raise SyntaxError("BREAK/CONTINUE outside loop")
 
             elif isinstance(stmt, A.Return):
                 if not in_function:
@@ -133,7 +146,8 @@ def analyze(program):
     scope = set()
     for stmt in program.statements:
         if isinstance(stmt, A.Declare):
-            expression(stmt.value, scope, False)
+            expression(stmt.value, scope, False, True)
             scope.add(stmt.name)
 
+    check_types(program)
     return True

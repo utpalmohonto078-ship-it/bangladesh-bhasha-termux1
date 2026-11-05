@@ -32,6 +32,8 @@ KEYWORDS = {
     "ফেরত": "RETURN", "return": "RETURN",
     "গ্লোবাল": "GLOBAL", "global": "GLOBAL",
     "যতক্ষণ": "WHILE", "while": "WHILE",
+    "থামো": "BREAK", "break": "BREAK",
+    "চালিয়ে_যাও": "CONTINUE", "continue": "CONTINUE",
 }
 
 def tokenize(source):

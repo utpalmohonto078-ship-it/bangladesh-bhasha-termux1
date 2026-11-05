@@ -5,3 +5,14 @@ build/
 __pycache__/
 FRESH_V2_BUILD.sh
 MASTER_BUILD.sh
+
+# Commercial private data
+commercial/data/
+commercial/backups/
+commercial/.secret
+commercial/.env
+.env
+*.key
+*.pem
+__pycache__/
+*.pyc

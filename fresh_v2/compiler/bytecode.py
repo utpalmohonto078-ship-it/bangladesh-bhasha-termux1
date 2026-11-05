@@ -5,7 +5,7 @@ def compile_ir(ir):
     allowed = {
         "CONST", "LOAD", "STORE", "PRINT", "BINARY", "UNARY",
         "CALL", "RETURN", "JUMP", "JUMP_IF_FALSE",
-        "LOOP_BEGIN", "LOOP_NEXT",
+        "LOOP_BEGIN", "LOOP_NEXT", "LOOP_BREAK",
     }
 
     code = ir.get("instructions")
@@ -16,7 +16,7 @@ def compile_ir(ir):
         if not isinstance(item, dict) or item.get("op") not in allowed:
             raise ValueError(f"Invalid IR instruction at {index}")
 
-        if item["op"] in ("JUMP", "JUMP_IF_FALSE", "LOOP_BEGIN", "LOOP_NEXT"):
+        if item["op"] in ("JUMP", "JUMP_IF_FALSE", "LOOP_BEGIN", "LOOP_NEXT", "LOOP_BREAK"):
             target = item.get("target")
             if not isinstance(target, int) or not 0 <= target <= len(code):
                 raise ValueError(f"Invalid jump target at {index}")

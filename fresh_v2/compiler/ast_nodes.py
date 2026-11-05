@@ -79,3 +79,11 @@ class Return:
 @dataclass
 class Global:
     name: str
+
+@dataclass
+class Break:
+    pass
+
+@dataclass
+class Continue:
+    pass

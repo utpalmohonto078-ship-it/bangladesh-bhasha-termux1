@@ -1,3 +1,5 @@
+from .stdlib import BUILTINS
+
 class VirtualMachine:
     def __init__(self):
         self.variables = {}
@@ -118,30 +120,44 @@ class VirtualMachine:
                 else:
                     loops.pop()
 
+            elif op == "LOOP_BREAK":
+                loops = self.frames[-1]["loops"] if self.frames else self.main_loops
+                if not loops:
+                    raise RuntimeError("LOOP_BREAK without LOOP_BEGIN")
+                loops.pop()
+                next_ip = item["target"]
+
             elif op == "CALL":
                 name = item["name"]
-                if name not in functions:
-                    raise RuntimeError(f"Unknown function: {name}")
-
-                info = functions[name]
                 argc = item["argc"]
-                params = info["params"]
-
-                if argc != len(params):
-                    raise RuntimeError(f"{name}: argument mismatch")
-
                 args = [self.pop() for _ in range(argc)][::-1]
 
-                if len(self.frames) >= 100:
-                    raise RuntimeError("Call depth exceeded")
+                if name in functions:
+                    info = functions[name]
+                    params = info["params"]
 
-                self.frames.append({
-                    "return_ip": next_ip,
-                    "locals": dict(zip(params, args)),
-                    "globals": set(info.get("globals", [])),
-                    "loops": [],
-                })
-                next_ip = info["target"]
+                    if argc != len(params):
+                        raise RuntimeError(f"{name}: argument mismatch")
+
+                    if len(self.frames) >= 100:
+                        raise RuntimeError("Call depth exceeded")
+
+                    self.frames.append({
+                        "return_ip": next_ip,
+                        "locals": dict(zip(params, args)),
+                        "globals": set(info.get("globals", [])),
+                        "loops": [],
+                    })
+                    next_ip = info["target"]
+
+                elif name in BUILTINS:
+                    expected, function = BUILTINS[name]
+                    if argc != expected:
+                        raise RuntimeError(f"{name}: argument mismatch")
+                    self.stack.append(function(*args))
+
+                else:
+                    raise RuntimeError(f"Unknown function: {name}")
 
             elif op == "RETURN":
                 result = self.pop()

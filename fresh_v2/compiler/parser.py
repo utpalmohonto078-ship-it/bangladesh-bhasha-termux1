@@ -69,6 +69,14 @@ class Parser:
             self.advance()
             return A.Print(self.expression())
 
+        if kind == "BREAK":
+            self.advance()
+            return A.Break()
+
+        if kind == "CONTINUE":
+            self.advance()
+            return A.Continue()
+
         if kind == "GLOBAL":
             self.advance()
             return A.Global(self.expect("IDENT").value)
