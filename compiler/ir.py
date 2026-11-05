@@ -17,9 +17,6 @@ def compile_source(source):
             continue
 
         line = lang.canonicalize_line(line)
-        im = re.fullmatch(r"([^\W\d][\w\u0300-\u036F\u064B-\u065F\u0900-\u0DFF]*)\s*\[(.+)\]\s*=(?!=)\s*(.+)", line)\n        if im:
-            line = (f"LET {im.group(1)} = set({im.group(1)}, "
-                    f"{im.group(2)}, {im.group(3)})")
 
         match = re.fullmatch(
             r"(?:LET|সংখ্যা|লেখা|তালিকা)\s+([^\W\d][\w\u0300-\u036F\u064B-\u065F\u0900-\u0DFF]*)\s*=\s*(.+)", line

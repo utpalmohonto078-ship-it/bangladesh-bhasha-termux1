@@ -125,3 +125,16 @@ def canonicalize_line(line):
                         lambda t: _translate(t, canon != "FUNCTION"))
         return (canon + " " + rest).strip()
     return _protect(line, lambda t: _translate(t, True))
+
+_IDX = re.compile(
+    r"([^\W\d][\w\u0300-\u036F\u064B-\u065F\u0900-\u0DFF]*)"
+    r"\s*\[(.+)\]\s*=(?!=)\s*(.+)")
+_base_canonicalize = canonicalize_line
+
+def canonicalize_line(line):
+    line = _base_canonicalize(line)
+    m = _IDX.fullmatch(line)
+    if m:
+        name, idx, val = m.groups()
+        return f"LET {name} = set({name}, {idx}, {val})"
+    return line
