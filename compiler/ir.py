@@ -1,6 +1,7 @@
 import json
 import unicodedata
 import re
+import lang
 import sys
 from pathlib import Path
 
@@ -15,8 +16,10 @@ def compile_source(source):
         if not line or line.startswith("#"):
             continue
 
+        line = lang.canonicalize_line(line)
+
         match = re.fullmatch(
-            r"(?:LET|সংখ্যা|লেখা|তালিকা)\s+([A-Za-z_\u0985-\u09B9\u09DC-\u09DF][\w\u09BC-\u09CD\u09D7\u0985-\u09B9\u09DC-\u09DF\u09E6-\u09EF]*)\s*=\s*(.+)", line
+            r"(?:LET|সংখ্যা|লেখা|তালিকা)\s+([^\W\d][\w\u0300-\u036F\u064B-\u065F\u0900-\u0DFF]*)\s*=\s*(.+)", line
         )
         if match:
             instructions.append({
@@ -66,9 +69,9 @@ def compile_source(source):
             })
         else:
             assign = re.fullmatch(
-                r"([A-Za-z_\u0985-\u09B9\u09DC-\u09DF][\w\u09BC-\u09CD\u09D7\u0985-\u09B9\u09DC-\u09DF\u09E6-\u09EF]*)\s*=(?!=)\s*(.+)", line
+                r"([^\W\d][\w\u0300-\u036F\u064B-\u065F\u0900-\u0DFF]*)\s*=(?!=)\s*(.+)", line
             )
-            call = re.fullmatch(r"[A-Za-z_\u0985-\u09B9\u09DC-\u09DF][\w\u09BC-\u09CD\u09D7\u0985-\u09B9\u09DC-\u09DF\u09E6-\u09EF]*\s*\(.*\)", line)
+            call = re.fullmatch(r"[^\W\d][\w\u0300-\u036F\u064B-\u065F\u0900-\u0DFF]*\s*\(.*\)", line)
             if assign:
                 instructions.append({
                     "op": "LET",
