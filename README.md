@@ -18,6 +18,7 @@ Founder & Project Architect: Utpal Kumar Mohonto (Choton)
 | সত্য / মিথ্যা | true / false | বুলিয়ান |
 | যদি / নাহলে / শেষ | if / else / end | শর্ত |
 | পুনরাবৃত্তি N / শেষ | repeat N / end | N বার লুপ |
+| যতক্ষণ / শেষ | while / end | শর্তসাপেক্ষ লুপ |
 | ফাংশন / ফেরত | function / return | ফাংশন |
 | গ্লোবাল | global | ফাংশনের ভেতরে গ্লোবাল ভেরিয়েবল |
 
@@ -41,6 +42,7 @@ Founder & Project Architect: Utpal Kumar Mohonto (Choton)
 
 ## পরিকল্পনা
 
-- `while` লুপ, স্ট্রিং ও লিস্টের আরও বিল্টইন
+- স্ট্রিং ও লিস্টের আরও বিল্টইন
+- Nested While ও সমন্বিত লুপের উন্নত পরীক্ষা
 - V1 ও V2 এর ফিচার একত্র করা
 - স্ট্যান্ডার্ড লাইব্রেরি, REPL, ডিবাগার

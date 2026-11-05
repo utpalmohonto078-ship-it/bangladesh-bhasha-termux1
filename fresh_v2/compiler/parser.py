@@ -100,6 +100,14 @@ class Parser:
             self.expect("END")
             return A.Repeat(count, body)
 
+        if kind == "WHILE":
+            self.advance()
+            condition = self.expression()
+            self.line_end()
+            body = self.block({"END"})
+            self.expect("END")
+            return A.While(condition, body)
+
         if kind == "FUNCTION":
             self.advance()
             name = self.expect("IDENT").value

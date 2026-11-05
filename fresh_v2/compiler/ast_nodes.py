@@ -62,6 +62,11 @@ class Repeat:
     body: list
 
 @dataclass
+class While:
+    condition: object
+    body: list
+
+@dataclass
 class Function:
     name: str
     params: list

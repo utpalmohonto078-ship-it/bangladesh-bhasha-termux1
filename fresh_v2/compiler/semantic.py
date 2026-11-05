@@ -24,6 +24,8 @@ def analyze(program):
                 collect_globals(stmt.otherwise, result)
             elif isinstance(stmt, A.Repeat):
                 collect_globals(stmt.body, result)
+            elif isinstance(stmt, A.While):
+                collect_globals(stmt.body, result)
 
     def collect_locals(body, result):
         for stmt in body:
@@ -33,6 +35,8 @@ def analyze(program):
                 collect_locals(stmt.body, result)
                 collect_locals(stmt.otherwise, result)
             elif isinstance(stmt, A.Repeat):
+                collect_locals(stmt.body, result)
+            elif isinstance(stmt, A.While):
                 collect_locals(stmt.body, result)
 
     def expression(node, scope, in_function):
@@ -73,7 +77,8 @@ def analyze(program):
                 scope.add(stmt.name)
 
             elif isinstance(stmt, A.Assign):
-                if stmt.name not in scope and stmt.name not in declared_globals:
+                if (stmt.name not in scope and stmt.name not in declared_globals
+                    and (in_function or stmt.name not in top_globals)):
                     raise NameError(f"Assignment to undeclared variable: {stmt.name}")
                 expression(stmt.value, scope, in_function)
 
@@ -87,6 +92,10 @@ def analyze(program):
 
             elif isinstance(stmt, A.Repeat):
                 expression(stmt.count, scope, in_function)
+                statements(stmt.body, scope, in_function, declared_globals)
+
+            elif isinstance(stmt, A.While):
+                expression(stmt.condition, scope, in_function)
                 statements(stmt.body, scope, in_function, declared_globals)
 
             elif isinstance(stmt, A.Return):
@@ -114,7 +123,7 @@ def analyze(program):
             if globals_set.intersection(locals_set):
                 raise SyntaxError("GLOBAL cannot conflict with a local variable")
 
-            scope = set(stmt.params) | locals_set
+            scope = set(stmt.params)
             statements(stmt.body, scope, True, globals_set)
 
         elif not isinstance(stmt, A.Declare):

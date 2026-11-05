@@ -163,5 +163,131 @@ class FreshV2Tests(unittest.TestCase):
         with self.assertRaises(SyntaxError):
             compile_source("ফেরত 5\n")
 
+    def test_while(self):
+        src = (
+            "সংখ্যা i = 0\n"
+            "যতক্ষণ i < 5\n"
+            "দেখাও i\n"
+            "i = i + 1\n"
+            "শেষ\n"
+        )
+        self.assertEqual(run_source(src), [0, 1, 2, 3, 4])
+
+    def test_global_inside_while(self):
+        src = (
+            "সংখ্যা total = 2\n"
+            "ফাংশন change()\n"
+            "সংখ্যা i = 0\n"
+            "যতক্ষণ i < 2\n"
+            "গ্লোবাল total\n"
+            "total = total + 1\n"
+            "i = i + 1\n"
+            "শেষ\n"
+            "ফেরত total\n"
+            "শেষ\n"
+            "দেখাও change()\n"
+            "দেখাও total\n"
+        )
+        self.assertEqual(run_source(src), [4, 4])
+
+    def test_while_false_initially(self):
+        src = (
+            "সংখ্যা i = 0\n"
+            "যতক্ষণ মিথ্যা\n"
+            "i = i + 1\n"
+            "দেখাও 99\n"
+            "শেষ\n"
+            "দেখাও i\n"
+        )
+        self.assertEqual(run_source(src), [0])
+
+    def test_while(self):
+        src = (
+            "সংখ্যা i = 0\n"
+            "যতক্ষণ i < 5\n"
+            "দেখাও i\n"
+            "i = i + 1\n"
+            "শেষ\n"
+        )
+        self.assertEqual(run_source(src), [0, 1, 2, 3, 4])
+
+    def test_global_inside_while(self):
+        src = (
+            "সংখ্যা total = 2\n"
+            "ফাংশন change()\n"
+            "সংখ্যা i = 0\n"
+            "যতক্ষণ i < 2\n"
+            "গ্লোবাল total\n"
+            "total = total + 1\n"
+            "i = i + 1\n"
+            "শেষ\n"
+            "ফেরত total\n"
+            "শেষ\n"
+            "দেখাও change()\n"
+            "দেখাও total\n"
+        )
+        self.assertEqual(run_source(src), [4, 4])
+
+    def test_while_false_initially(self):
+        src = (
+            "সংখ্যা i = 0\n"
+            "যতক্ষণ মিথ্যা\n"
+            "i = i + 1\n"
+            "দেখাও 99\n"
+            "শেষ\n"
+            "দেখাও i\n"
+        )
+        self.assertEqual(run_source(src), [0])
+
+
+    def test_advanced_while_english(self):
+        src = (
+            "let i = 0\n"
+            "while i < 3\n"
+            "print i\n"
+            "i = i + 1\n"
+            "end\n"
+        )
+        self.assertEqual(run_source(src), [0, 1, 2])
+
+    def test_nested_while(self):
+        src = (
+            "let i = 0\n"
+            "while i < 2\n"
+            "let j = 0\n"
+            "while j < 2\n"
+            "print i * 10 + j\n"
+            "j = j + 1\n"
+            "end\n"
+            "i = i + 1\n"
+            "end\n"
+        )
+        self.assertEqual(run_source(src), [0, 1, 10, 11])
+
+    def test_while_with_if_else(self):
+        src = (
+            "let i = 0\n"
+            "while i < 3\n"
+            "if i == 1\n"
+            "print 10\n"
+            "else\n"
+            "print i\n"
+            "end\n"
+            "i = i + 1\n"
+            "end\n"
+        )
+        self.assertEqual(run_source(src), [0, 10, 2])
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+    def test_negative_numbers(self):
+        self.assertEqual(run_source("দেখাও -5 + 3\n"), [-2])
+
+    def test_multiple_variables(self):
+        src = (
+            "সংখ্যা a = 10\n"
+            "সংখ্যা b = 20\n"
+            "দেখাও a * b\n"
+        )
+        self.assertEqual(run_source(src), [200])

@@ -1,0 +1,40 @@
+#!/data/data/com.termux/files/usr/bin/python
+import sys
+from bb import compile_source, run_source
+
+def main():
+    if len(sys.argv) > 1:
+        # যদি কোনো ফাইল দিয়ে রান করা হয় (যেমন: bhasha script.bb)
+        filename = sys.argv[1]
+        try:
+            with open(filename, 'r', encoding='utf-8') as f:
+                code = f.read()
+            results = run_source(code)
+            if results is not None:
+                for res in results:
+                    print(res)
+        except Exception as e:
+            print(f"Error: {e}")
+    else:
+        # কোনো ফাইল না দিলে REPL মোড চালু হবে
+        print("==================================================")
+        print("      BANGLADESH BHASHA INTERACTIVE REPL         ")
+        print("==================================================")
+        print("Type 'exit' or 'quit' to exit the shell.\n")
+        while True:
+            try:
+                line = input("বাংলা-ভাষা> ")
+                if line.strip().lower() in ["exit", "quit"]:
+                    print("বিদায়!")
+                    break
+                if not line.strip():
+                    continue
+                results = run_source(line + "\n")
+                if results is not None:
+                    for res in results:
+                        print(res)
+            except Exception as e:
+                print(f"Error: {e}")
+
+if __name__ == "__main__":
+    main()

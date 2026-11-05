@@ -37,6 +37,8 @@ def generate(program):
                 found |= globals_in(stmt.otherwise)
             elif isinstance(stmt, A.Repeat):
                 found |= globals_in(stmt.body)
+            elif isinstance(stmt, A.While):
+                found |= globals_in(stmt.body)
         return found
 
     def block(body):
@@ -82,6 +84,15 @@ def generate(program):
                 block(stmt.body)
                 code.append({"op": "LOOP_NEXT", "target": begin + 1})
                 code[begin]["target"] = len(code)
+
+            elif isinstance(stmt, A.While):
+                begin = len(code)
+                expr(stmt.condition)
+                exit_jump = len(code)
+                code.append({"op": "JUMP_IF_FALSE", "target": -1})
+                block(stmt.body)
+                code.append({"op": "JUMP", "target": begin})
+                code[exit_jump]["target"] = len(code)
 
     # Functions are placed before the main program.
     # A jump prevents normal execution from entering function bodies.
