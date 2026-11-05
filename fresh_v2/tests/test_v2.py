@@ -103,6 +103,37 @@ class FreshV2Tests(unittest.TestCase):
         )
         self.assertEqual(run_source(src), [6])
 
+    def test_global_inside_repeat(self):
+        src = (
+            "সংখ্যা total = 2\n"
+            "ফাংশন change()\n"
+            "পুনরাবৃত্তি 2\n"
+            "গ্লোবাল total\n"
+            "শেষ\n"
+            "total = total * 3\n"
+            "ফেরত total\n"
+            "শেষ\n"
+            "দেখাও change()\n"
+        )
+        self.assertEqual(run_source(src), [6])
+
+    def test_global_inside_else(self):
+        src = (
+            "সংখ্যা total = 2\n"
+            "ফাংশন change()\n"
+            "যদি মিথ্যা\n"
+            "দেখাও 0\n"
+            "নাহলে\n"
+            "গ্লোবাল total\n"
+            "শেষ\n"
+            "total = total * 3\n"
+            "ফেরত total\n"
+            "শেষ\n"
+            "দেখাও change()\n"
+            "দেখাও total\n"
+        )
+        self.assertEqual(run_source(src), [6, 6])
+
     def test_global_outside_function(self):
         with self.assertRaises(SyntaxError):
             compile_source("গ্লোবাল x\n")
