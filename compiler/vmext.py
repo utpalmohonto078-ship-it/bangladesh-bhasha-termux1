@@ -1,4 +1,4 @@
-EXT_OPS = {"LEN", "TOSTR", "TONUM", "LIST_ADD", "BUILD_LIST", "INDEX"}
+EXT_OPS = {"LEN", "TOSTR", "TONUM", "LIST_ADD", "BUILD_LIST", "INDEX", "INPUT"}
 MAX_LIST = 10000
 
 def _err(line, msg):
@@ -60,7 +60,20 @@ def _add(item, stack, line, pop):
         _err(line, "list too large")
     stack.append(lst + [x])
 
+def _input(item, stack, line, pop):
+    prompt = pop()
+    if type(prompt) is not str:
+        _err(line, "prompt must be text")
+    try:
+        text = input(prompt)
+    except EOFError:
+        _err(line, "no input available")
+    if len(text) > 100000:
+        _err(line, "string limit exceeded")
+    stack.append(text)
+
 _HANDLERS = {
+    "INPUT": _input,
     "BUILD_LIST": _build, "INDEX": _index, "LEN": _len,
     "TOSTR": _tostr, "TONUM": _tonum, "LIST_ADD": _add,
 }

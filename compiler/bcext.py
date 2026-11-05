@@ -6,6 +6,7 @@ _RAW = {
     "str": ("TOSTR", 1), "টেক্সট": ("TOSTR", 1),
     "num": ("TONUM", 1), "সংখ্যায়": ("TONUM", 1),
     "push": ("LIST_ADD", 2), "যোগ": ("LIST_ADD", 2),
+    "input": ("INPUT", 1), "নাও": ("INPUT", 1),
 }
 BUILTINS = {
     unicodedata.normalize("NFKC", k): v for k, v in _RAW.items()
