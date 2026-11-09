@@ -41,6 +41,8 @@ def check_types(program):
             for arg in node.args:
                 infer(arg, scope)
 
+            if node.name in functions:
+                return check_function(node.name, [infer(a, scope) for a in node.args])
             if node.name in ("ধরন", "type_of"):
                 return "string"
             if node.name in ("দৈর্ঘ্য", "length"):
@@ -64,6 +66,8 @@ def check_types(program):
                 if op == "+" and left == right == "string":
                     return "string"
 
+                if op == "+" and "string" in (left, right) and UNKNOWN in (left, right):
+                    return UNKNOWN
                 if left != UNKNOWN and left not in NUMERIC:
                     raise TypeError(
                         f"Operator {op}: numeric value required, got {left}"
@@ -97,6 +101,58 @@ def check_types(program):
         raise TypeError(
             f"Static type checker: unsupported expression {type(node).__name__}"
         )
+
+    return_stack = []
+    fn_cache = {}
+    fn_active = set()
+
+    def function_globals(function):
+        found = set()
+        def walk(body):
+            for item in body:
+                if isinstance(item, A.Global):
+                    found.add(item.name)
+                elif isinstance(item, A.If):
+                    walk(item.body)
+                    walk(item.otherwise)
+                elif isinstance(item, (A.Repeat, A.While)):
+                    walk(item.body)
+        walk(function.body)
+        return found
+
+    def merge_returns(types):
+        if not types or UNKNOWN in types:
+            return UNKNOWN
+        unique = set(types)
+        if len(unique) == 1:
+            return unique.pop()
+        if unique <= NUMERIC:
+            return "float"
+        return UNKNOWN
+
+    def check_function(name, arg_types):
+        function = functions[name]
+        if len(arg_types) != len(function.params):
+            return UNKNOWN
+        key = (name, tuple(arg_types))
+        if key in fn_cache:
+            return fn_cache[key]
+        if key in fn_active:
+            return UNKNOWN
+        fn_active.add(key)
+        return_stack.append([])
+        try:
+            scope = dict(zip(function.params, arg_types))
+            check_body(function.body, scope, function_globals(function))
+            result = merge_returns(return_stack[-1])
+        except TypeError as error:
+            raise TypeError(f"{name}({', '.join(arg_types)}): {error}") from None
+        finally:
+            return_stack.pop()
+            fn_active.discard(key)
+        fn_cache[key] = result
+        return result
+
 
     def check_body(body, scope, declared_globals):
         for stmt in body:
@@ -162,7 +218,9 @@ def check_types(program):
                 check_body(stmt.body, scope, declared_globals)
 
             elif isinstance(stmt, A.Return):
-                infer(stmt.value, scope)
+                ret_type = infer(stmt.value, scope)
+                if return_stack:
+                    return_stack[-1].append(ret_type)
 
             elif isinstance(stmt, A.Global):
                 pass

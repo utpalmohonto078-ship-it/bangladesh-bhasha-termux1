@@ -1,40 +1,70 @@
 #!/data/data/com.termux/files/usr/bin/python
-import sys
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 from bb import compile_source, run_source
 
-def main():
-    if len(sys.argv) > 1:
-        # যদি কোনো ফাইল দিয়ে রান করা হয় (যেমন: bhasha script.bb)
-        filename = sys.argv[1]
+VERSION = "2.0"
+
+HELP = """ব্যবহার:
+  bhasha run <ফাইল.bb>    প্রোগ্রাম চালান
+  bhasha <ফাইল.bb>        (run-এর সংক্ষিপ্ত রূপ)
+  bhasha check <ফাইল.bb>  চালানো ছাড়া শুধু পরীক্ষা
+  bhasha repl             ইন্টারেক্টিভ মোড
+  bhasha version          সংস্করণ
+  bhasha help             সাহায্য"""
+
+def read(path):
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+def run_file(path):
+    for res in run_source(read(path)) or []:
+        print(res)
+
+def check_file(path):
+    compile_source(read(path))
+    print("ঠিক আছে:", path)
+
+def repl():
+    print("BANGLADESH BHASHA REPL (বের হতে exit লিখুন)")
+    while True:
         try:
-            with open(filename, 'r', encoding='utf-8') as f:
-                code = f.read()
-            results = run_source(code)
-            if results is not None:
-                for res in results:
-                    print(res)
+            line = input("বাংলা-ভাষা> ")
+        except (EOFError, KeyboardInterrupt):
+            print("\nবিদায়!")
+            break
+        if line.strip().lower() in ("exit", "quit"):
+            print("বিদায়!")
+            break
+        if not line.strip():
+            continue
+        try:
+            for res in run_source(line + "\n") or []:
+                print(res)
         except Exception as e:
             print(f"Error: {e}")
-    else:
-        # কোনো ফাইল না দিলে REPL মোড চালু হবে
-        print("==================================================")
-        print("      BANGLADESH BHASHA INTERACTIVE REPL         ")
-        print("==================================================")
-        print("Type 'exit' or 'quit' to exit the shell.\n")
-        while True:
-            try:
-                line = input("বাংলা-ভাষা> ")
-                if line.strip().lower() in ["exit", "quit"]:
-                    print("বিদায়!")
-                    break
-                if not line.strip():
-                    continue
-                results = run_source(line + "\n")
-                if results is not None:
-                    for res in results:
-                        print(res)
-            except Exception as e:
-                print(f"Error: {e}")
+
+def main():
+    a = sys.argv[1:]
+    try:
+        if not a or a[0] == "repl":
+            repl()
+        elif a[0] in ("help", "-h", "--help"):
+            print(HELP)
+        elif a[0] in ("version", "--version"):
+            print("BANGLADESH BHASHA", VERSION)
+        elif a[0] == "run" and len(a) > 1:
+            run_file(a[1])
+        elif a[0] == "check" and len(a) > 1:
+            check_file(a[1])
+        else:
+            run_file(a[0])
+    except FileNotFoundError as e:
+        print(f"ফাইল পাওয়া যায়নি: {e.filename}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

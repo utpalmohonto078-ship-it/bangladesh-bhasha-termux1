@@ -24,6 +24,8 @@ class VirtualMachine:
 
         while ip < len(code):
             steps += 1
+            if len(self.stack) > 10000:
+                raise RuntimeError("Stack limit exceeded")
             if steps > max_steps:
                 raise RuntimeError("Execution step limit exceeded")
 
@@ -88,7 +90,21 @@ class VirtualMachine:
 
                 if operator not in operations:
                     raise RuntimeError(f"Unsupported operator: {operator}")
-                self.stack.append(operations[operator]())
+                if operator == "*":
+                    for x, y in ((left, right), (right, left)):
+                        if isinstance(x, str) and isinstance(y, int) and not isinstance(y, bool) and len(x) * max(y, 0) > 1000000:
+                            raise RuntimeError("String অতিরিক্ত বড়")
+                try:
+                    result = operations[operator]()
+                except ZeroDivisionError:
+                    raise RuntimeError("শূন্য দিয়ে ভাগ করা যায় না")
+                except (TypeError, ValueError, OverflowError):
+                    raise RuntimeError(f"Operator {operator}: মানের ধরন অবৈধ")
+                if isinstance(result, str) and len(result) > 1000000:
+                    raise RuntimeError("String অতিরিক্ত বড়")
+                if isinstance(result, int) and not isinstance(result, bool) and result.bit_length() > 4096:
+                    raise RuntimeError("সংখ্যা অতিরিক্ত বড়")
+                self.stack.append(result)
 
             elif op == "JUMP":
                 next_ip = item["target"]

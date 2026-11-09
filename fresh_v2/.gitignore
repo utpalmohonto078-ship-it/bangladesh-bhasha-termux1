@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 *.bak
 *.bak*
+cpp/dump_tokens
+cpp/dump_ast
