@@ -68,8 +68,18 @@ public class MainActivity extends Activity {
         output = new TextView(this);
         output.setText("Output will appear here.");
         output.setTextIsSelectable(true);
+        output.setTextSize(18);
         output.setPadding(8, 18, 8, 8);
         root.addView(output);
+
+        root.setOnApplyWindowInsetsListener((v, insets) -> {
+            v.setPadding(
+                20 + insets.getSystemWindowInsetLeft(),
+                24 + insets.getSystemWindowInsetTop(),
+                20 + insets.getSystemWindowInsetRight(),
+                20 + insets.getSystemWindowInsetBottom());
+            return insets;
+        });
 
         setContentView(root);
 
