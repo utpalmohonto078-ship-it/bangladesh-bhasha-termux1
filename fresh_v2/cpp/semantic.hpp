@@ -110,6 +110,26 @@ inline bool analyze(const NodeP& program) {
             return;
         }
 
+        if (n->t == "List") {
+            for (const auto& item : n->body)
+                expression(item, scope, init_mode, initialized);
+            return;
+        }
+
+        if (n->t == "Dict") {
+            for (const auto& pair : n->pairs) {
+                expression(pair.first, scope, init_mode, initialized);
+                expression(pair.second, scope, init_mode, initialized);
+            }
+            return;
+        }
+
+        if (n->t == "IndexRead") {
+            expression(n->a, scope, init_mode, initialized);
+            expression(n->b, scope, init_mode, initialized);
+            return;
+        }
+
         if (n->t == "Binary") {
             expression(n->a, scope, init_mode, initialized);
             expression(n->b, scope, init_mode, initialized);
@@ -145,6 +165,16 @@ inline bool analyze(const NodeP& program) {
                 expression(s->a, scope, false, {});
                 scope.insert(s->name);
             }
+            else if (s->t == "IndexAssign") {
+                if (!scope.count(s->name) &&
+                    !declared_globals.count(s->name) &&
+                    (in_function || !top_globals.count(s->name))) {
+                    throw std::runtime_error(
+                        "Assignment to undeclared variable: " + s->name);
+                }
+                expression(s->a, scope, false, {});
+                expression(s->b, scope, false, {});
+            }
             else if (s->t == "Assign") {
                 if (!scope.count(s->name) &&
                     !declared_globals.count(s->name) &&
@@ -171,11 +201,11 @@ inline bool analyze(const NodeP& program) {
             }
             else if (s->t == "Break") {
                 if (loop_depth == 0)
-                    throw std::runtime_error("BREAK outside loop");
+                    throw std::runtime_error("BREAK/CONTINUE outside loop");
             }
             else if (s->t == "Continue") {
                 if (loop_depth == 0)
-                    throw std::runtime_error("CONTINUE outside loop");
+                    throw std::runtime_error("BREAK/CONTINUE outside loop");
             }
             else if (s->t == "Return") {
                 if (!in_function)

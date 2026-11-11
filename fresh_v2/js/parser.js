@@ -197,6 +197,13 @@ class Parser {
 
     if (kind === "IDENT") {
       const name = this.advance().value;
+      if (this.isOp("[")) {
+        this.advance();
+        const index = this.expression();
+        this.expectOp("]");
+        this.expectOp("=");
+        return { t: "IndexAssign", name, index, value: this.expression() };
+      }
       this.expectOp("=");
       return { t: "Assign", name, value: this.expression() };
     }
@@ -209,7 +216,15 @@ class Parser {
     let left = this.prefix();
 
     while (true) {
-      if (this.isOp("(")) {
+      
+      if (this.isOp("[")) {
+        this.advance();
+        const index = this.expression();
+        this.expectOp("]");
+        left = { t: "IndexRead", target: left, index };
+        continue;
+      }
+if (this.isOp("(")) {
         if (left.t !== "Variable") break;
         this.advance();
         const args = [];
@@ -249,6 +264,37 @@ class Parser {
     if (token.kind === "TRUE") return { t: "Boolean", value: true };
     if (token.kind === "FALSE") return { t: "Boolean", value: false };
     if (token.kind === "IDENT") return { t: "Variable", name: token.value };
+    if (token.kind === "OP" && token.value === "[") {
+      const items = [];
+      if (!this.isOp("]")) {
+        items.push(this.expression());
+        while (this.isOp(",")) {
+          this.advance();
+          items.push(this.expression());
+        }
+      }
+      this.expectOp("]");
+      return { t: "List", items };
+    }
+    if (token.kind === "OP" && token.value === "{") {
+      const pairs = [];
+      if (!this.isOp("}")) {
+        const key = this.expression();
+        this.expectOp(":");
+        const val = this.expression();
+        pairs.push({ key, value: val });
+        while (this.isOp(",")) {
+          this.advance();
+          if (this.isOp("}")) break;
+          const k = this.expression();
+          this.expectOp(":");
+          const v = this.expression();
+          pairs.push({ key: k, value: v });
+        }
+      }
+      this.expectOp("}");
+      return { t: "Dict", pairs };
+    }
 
     if (token.kind === "OP" && (token.value === "-" || token.value === "+")) {
       return { t: "Unary", operator: token.value, operand: this.expression(4) };

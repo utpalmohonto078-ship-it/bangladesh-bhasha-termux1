@@ -87,3 +87,28 @@ class Break:
 @dataclass
 class Continue:
     pass
+
+@dataclass
+class ListLit:
+    items: list
+
+@dataclass
+class DictLit:
+    keys: list
+    values: list
+
+@dataclass
+class Index:
+    target: object
+    index: object
+
+@dataclass
+class IndexAssign:
+    name: str
+    index: object
+    value: object
+
+
+@dataclass
+class ExprStmt:
+    value: object

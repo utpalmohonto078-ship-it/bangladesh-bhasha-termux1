@@ -1,0 +1,65 @@
+plugins {
+    id 'com.android.application'
+    id 'com.chaquo.python'
+}
+
+android {
+    namespace = 'com.utpal.bhasha'
+    enableKotlin = false
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.utpal.bhasha'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '2.1.0'
+
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+    }
+}
+
+chaquopy {
+    defaultConfig {
+        version = '3.14'
+    }
+}
+
+// Synchronize the existing BHASHA compiler and runtime into Chaquopy.
+def bhashaRoot = rootProject.projectDir.parentFile
+
+tasks.register('syncBhashaPython', Sync) {
+    from(bhashaRoot.toPath().resolve('compiler').toFile()) {
+        into 'compiler'
+    }
+    from(bhashaRoot.toPath().resolve('runtime').toFile()) {
+        into 'runtime'
+    }
+    from(bhashaRoot.toPath().resolve('bb.py').toFile()) {
+        into ''
+    }
+    from(bhashaRoot.toPath().resolve('android-app/python-bridge').toFile()) {
+        into ''
+    }
+
+    // Exclude Python caches and backup files from the Android package.
+    exclude '**/__pycache__/**'
+    exclude '**/*.pyc'
+    exclude '**/*.pyo'
+    exclude '**/*.bak*'
+
+    into layout.projectDirectory.dir('src/main/python')
+}
+
+// Ensure Python sources are synchronized before Chaquopy merges them.
+tasks.configureEach {
+    if (name == 'mergeDebugPythonSources') {
+        dependsOn tasks.named('syncBhashaPython')
+    }
+}
+
+tasks.named('preBuild').configure {
+    dependsOn tasks.named('syncBhashaPython')
+}

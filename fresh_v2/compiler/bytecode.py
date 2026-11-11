@@ -1,39 +1,27 @@
+from runtime.bytecode_validation import validate_program
+
+
 def compile_ir(ir):
-    if ir.get("format") != "BB-V2-IR":
-        raise ValueError("Invalid BB V2 IR format")
+    validate_program(
+        ir,
+        expected_format="BB-V2-IR",
+        instructions_key="instructions",
+    )
 
-    allowed = {
-        "CONST", "LOAD", "STORE", "PRINT", "BINARY", "UNARY",
-        "CALL", "RETURN", "JUMP", "JUMP_IF_FALSE",
-        "LOOP_BEGIN", "LOOP_NEXT", "LOOP_BREAK",
-    }
-
-    code = ir.get("instructions")
-    if not isinstance(code, list):
-        raise ValueError("IR instructions must be a list")
-
-    for index, item in enumerate(code):
-        if not isinstance(item, dict) or item.get("op") not in allowed:
-            raise ValueError(f"Invalid IR instruction at {index}")
-
-        if item["op"] in ("JUMP", "JUMP_IF_FALSE", "LOOP_BEGIN", "LOOP_NEXT", "LOOP_BREAK"):
-            target = item.get("target")
-            if not isinstance(target, int) or not 0 <= target <= len(code):
-                raise ValueError(f"Invalid jump target at {index}")
-
+    code = ir["instructions"]
     functions = ir.get("functions", {})
-    for name, info in functions.items():
-        if not isinstance(info, dict):
-            raise ValueError(f"Invalid function metadata: {name}")
-        target = info.get("target")
-        params = info.get("params")
-        if not isinstance(target, int) or not 0 <= target < len(code):
-            raise ValueError(f"Invalid function target: {name}")
-        if not isinstance(params, list):
-            raise ValueError(f"Invalid function parameters: {name}")
+
+    copied_functions = {
+        name: {
+            "target": info["target"],
+            "params": list(info["params"]),
+            "globals": list(info.get("globals", [])),
+        }
+        for name, info in functions.items()
+    }
 
     return {
         "format": "BB-V2-BC",
         "code": [dict(item) for item in code],
-        "functions": functions,
+        "functions": copied_functions,
     }

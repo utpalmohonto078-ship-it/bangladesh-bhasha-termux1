@@ -180,11 +180,11 @@ inline std::vector<Token> tokenize(std::string src) {
                (cp == '=' || cp == '!' || cp == '<' || cp == '>')) {
       end = pos + 2;
       kind = "OP";
-    } else if (cp != 0 && cp < 0x80 && std::strchr("+-*/%=<>(),", static_cast<int>(cp))) {
+    } else if (cp != 0 && cp < 0x80 &&
+               std::strchr("+-*/%=<>(),[]{}:", static_cast<int>(cp))) {
       end = pos + 1;
       kind = "OP";
     }
-
     if (kind.empty()) {
       throw SyntaxError("Line " + std::to_string(line) + ", column " +
                         std::to_string(column) + ": invalid character " +

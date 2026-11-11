@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <memory>
 #include <set>
+#include <utility>
 #include "digit_zeros.hpp"
 #include "lexer.hpp"
 
@@ -19,6 +20,7 @@ struct Node {
   double num = 0;
   NodeP a, b;
   std::vector<NodeP> body, otherwise;
+  std::vector<std::pair<NodeP, NodeP>> pairs;
   std::vector<std::string> params;
   explicit Node(std::string type) : t(std::move(type)) {}
 };
@@ -317,8 +319,20 @@ class Parser {
       return n;
     }
     if (kind == "IDENT") {
+      std::string name = advance().value;
+      if (is_op("[")) {
+        advance();
+        auto index = expression();
+        expect_op("]");
+        expect_op("=");
+        auto n = mk("IndexAssign");
+        n->name = name;
+        n->a = index;
+        n->b = expression();
+        return n;
+      }
       auto n = mk("Assign");
-      n->name = advance().value;
+      n->name = name;
       expect_op("=");
       n->a = expression();
       return n;
@@ -334,7 +348,18 @@ class Parser {
 
     NodeP left = prefix();
     while (true) {
-      if (is_op("(")) {
+      
+      if (is_op("[")) {
+          advance();
+          auto idx = expression();
+          expect_op("]");
+          auto call = mk("IndexRead");
+          call->a = left;
+          call->b = idx;
+          left = call;
+          continue;
+      }
+if (is_op("(")) {
         if (left->t != "Variable") break;
         advance();
         auto call = mk("Call");
@@ -397,6 +422,37 @@ class Parser {
       auto n = mk("Variable");
       n->name = t.value;
       return n;
+    }
+    if (t.kind == "OP" && t.value == "[") {
+        auto n = mk("List");
+        if (!is_op("]")) {
+            n->body.push_back(expression());
+            while (is_op(",")) {
+                advance();
+                n->body.push_back(expression());
+            }
+        }
+        expect_op("]");
+        return n;
+    }
+    if (t.kind == "OP" && t.value == "{") {
+        auto n = mk("Dict");
+        if (!is_op("}")) {
+            auto key = expression();
+            expect_op(":");
+            auto val = expression();
+            n->pairs.push_back({key, val});
+            while (is_op(",")) {
+                advance();
+                if (is_op("}")) break;
+                auto k = expression();
+                expect_op(":");
+                auto v = expression();
+                n->pairs.push_back({k, v});
+            }
+        }
+        expect_op("}");
+        return n;
     }
     if (t.kind == "OP" && (t.value == "-" || t.value == "+")) {
       auto n = mk("Unary");

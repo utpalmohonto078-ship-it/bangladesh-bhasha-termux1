@@ -201,45 +201,6 @@ class FreshV2Tests(unittest.TestCase):
         )
         self.assertEqual(run_source(src), [0])
 
-    def test_while(self):
-        src = (
-            "সংখ্যা i = 0\n"
-            "যতক্ষণ i < 5\n"
-            "দেখাও i\n"
-            "i = i + 1\n"
-            "শেষ\n"
-        )
-        self.assertEqual(run_source(src), [0, 1, 2, 3, 4])
-
-    def test_global_inside_while(self):
-        src = (
-            "সংখ্যা total = 2\n"
-            "ফাংশন change()\n"
-            "সংখ্যা i = 0\n"
-            "যতক্ষণ i < 2\n"
-            "গ্লোবাল total\n"
-            "total = total + 1\n"
-            "i = i + 1\n"
-            "শেষ\n"
-            "ফেরত total\n"
-            "শেষ\n"
-            "দেখাও change()\n"
-            "দেখাও total\n"
-        )
-        self.assertEqual(run_source(src), [4, 4])
-
-    def test_while_false_initially(self):
-        src = (
-            "সংখ্যা i = 0\n"
-            "যতক্ষণ মিথ্যা\n"
-            "i = i + 1\n"
-            "দেখাও 99\n"
-            "শেষ\n"
-            "দেখাও i\n"
-        )
-        self.assertEqual(run_source(src), [0])
-
-
     def test_advanced_while_english(self):
         src = (
             "let i = 0\n"
@@ -308,7 +269,7 @@ class FreshV2Tests(unittest.TestCase):
             compile_source("দেখাও ধরন()\n")
 
     def test_builtin_length_rejects_non_string(self):
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             run_source("দেখাও দৈর্ঘ্য(123)\n")
 
     def test_global_initializer_order(self):

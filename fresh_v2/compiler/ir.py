@@ -21,6 +21,19 @@ def generate(program):
             expr(node.left)
             expr(node.right)
             code.append({"op": "BINARY", "operator": node.operator})
+        elif isinstance(node, A.ListLit):
+            for element in node.items:
+                expr(element)
+            code.append({"op": "BUILD_LIST", "count": len(node.items)})
+        elif isinstance(node, A.DictLit):
+            for key, value in zip(node.keys, node.values):
+                expr(key)
+                expr(value)
+            code.append({"op": "BUILD_DICT", "count": len(node.keys)})
+        elif isinstance(node, A.Index):
+            expr(node.target)
+            expr(node.index)
+            code.append({"op": "INDEX"})
         elif isinstance(node, A.Call):
             for arg in node.args:
                 expr(arg)
@@ -52,9 +65,19 @@ def generate(program):
                 expr(stmt.value)
                 code.append({"op": "STORE", "name": stmt.name})
 
+            elif isinstance(stmt, A.IndexAssign):
+                code.append({"op": "LOAD", "name": stmt.name})
+                expr(stmt.index)
+                expr(stmt.value)
+                code.append({"op": "STORE_INDEX"})
+            
             elif isinstance(stmt, A.Print):
                 expr(stmt.value)
                 code.append({"op": "PRINT"})
+
+            elif isinstance(stmt, A.ExprStmt):
+                expr(stmt.value)
+                code.append({"op": "POP"})
 
             elif isinstance(stmt, A.Return):
                 expr(stmt.value)

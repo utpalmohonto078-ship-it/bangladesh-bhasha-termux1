@@ -52,6 +52,13 @@ def analyze(program):
         elif isinstance(node, A.Call):
             if node.name in functions:
                 expected = len(functions[node.name].params)
+            elif node.name in ("নাও", "input"):
+                if len(node.args) not in (0, 1):
+                    raise TypeError(
+                        f"{node.name}: expected 0 or 1 arguments, "
+                        f"got {len(node.args)}"
+                    )
+                expected = len(node.args)
             elif node.name in BUILTINS:
                 expected = BUILTINS[node.name][0]
             else:
@@ -72,6 +79,18 @@ def analyze(program):
         elif isinstance(node, A.Unary):
             expression(node.operand, scope, in_function, init_mode)
 
+        elif isinstance(node, A.ListLit):
+            for element in node.items:
+                expression(element, scope, in_function, init_mode)
+        
+        elif isinstance(node, A.DictLit):
+            for element in node.keys + node.values:
+                expression(element, scope, in_function, init_mode)
+        
+        elif isinstance(node, A.Index):
+            expression(node.target, scope, in_function, init_mode)
+            expression(node.index, scope, in_function, init_mode)
+        
         elif not isinstance(node, (A.Number, A.String, A.Boolean)):
             raise TypeError(f"Unsupported expression: {type(node).__name__}")
 
@@ -91,7 +110,17 @@ def analyze(program):
                     raise NameError(f"Assignment to undeclared variable: {stmt.name}")
                 expression(stmt.value, scope, in_function)
 
+            elif isinstance(stmt, A.IndexAssign):
+                if (stmt.name not in scope and stmt.name not in declared_globals
+                    and (in_function or stmt.name not in top_globals)):
+                    raise NameError(f"Assignment to undeclared variable: {stmt.name}")
+                expression(stmt.index, scope, in_function)
+                expression(stmt.value, scope, in_function)
+            
             elif isinstance(stmt, A.Print):
+                expression(stmt.value, scope, in_function)
+
+            elif isinstance(stmt, A.ExprStmt):
                 expression(stmt.value, scope, in_function)
 
             elif isinstance(stmt, A.If):
@@ -122,6 +151,7 @@ def analyze(program):
                 if stmt.name not in top_globals:
                     raise NameError(f"Unknown global variable: {stmt.name}")
 
+    top_scope = set()
     for stmt in program.statements:
         if isinstance(stmt, A.Function):
             globals_set = set()
@@ -140,7 +170,7 @@ def analyze(program):
             statements(stmt.body, scope, True, globals_set)
 
         elif not isinstance(stmt, A.Declare):
-            statements([stmt], set(), False, set())
+            statements([stmt], top_scope, False, set())
 
     # Validate initializers after collecting all top-level declarations.
     scope = set()

@@ -16,3 +16,6 @@ commercial/.env
 *.pem
 __pycache__/
 *.pyc
+terminal_history.txt
+terminal_history.txt
+fresh_v2/cpp/check_semantic

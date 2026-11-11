@@ -34,6 +34,7 @@ inline bool check_types(const NodeP& program) {
 
     std::map<FunctionKey, std::string> fn_cache;
     std::set<FunctionKey> fn_active;
+    bool skip_next_prefix = false;
     std::vector<std::vector<std::string>> return_stack;
 
     std::function<std::string(const NodeP&, const Types&)> infer;
@@ -76,6 +77,45 @@ inline bool check_types(const NodeP& program) {
 
             i = globals.find(n->name);
             return i == globals.end() ? UNKNOWN_TYPE : i->second;
+        }
+
+        if (n->t == "List") {
+            for (const auto& item : n->body)
+                infer(item, scope);
+            return "list";
+        }
+
+        if (n->t == "Dict") {
+            for (const auto& pair : n->pairs) {
+                auto key = infer(pair.first, scope);
+                if (key != "integer" && key != "string" &&
+                    key != UNKNOWN_TYPE)
+                    throw std::runtime_error(
+                        "Dict key must be string or integer, got " + key);
+                infer(pair.second, scope);
+            }
+            return "dict";
+        }
+
+        if (n->t == "IndexRead") {
+            auto target = infer(n->a, scope);
+            auto key = infer(n->b, scope);
+
+            if (target != UNKNOWN_TYPE && target != "list" &&
+                target != "dict" && target != "string")
+                throw std::runtime_error("Cannot index " + target);
+
+            if ((target == "list" || target == "string") &&
+                key != "integer" && key != UNKNOWN_TYPE)
+                throw std::runtime_error(
+                    "Index must be integer, got " + key);
+
+            if (target == "dict" && key != "integer" &&
+                key != "string" && key != UNKNOWN_TYPE)
+                throw std::runtime_error(
+                    "Dict key must be string or integer, got " + key);
+
+            return target == "string" ? "string" : UNKNOWN_TYPE;
         }
 
         if (n->t == "Call") {
@@ -169,6 +209,38 @@ inline bool check_types(const NodeP& program) {
 
                 scope[s->name] = infer(s->a, scope);
 
+            } else if (s->t == "IndexAssign") {
+                auto key = infer(s->a, scope);
+                infer(s->b, scope);
+
+                std::string target = UNKNOWN_TYPE;
+                if (dg.count(s->name)) {
+                    auto g = globals.find(s->name);
+                    if (g != globals.end()) target = g->second;
+                } else {
+                    auto v = scope.find(s->name);
+                    if (v != scope.end()) target = v->second;
+                    else {
+                        auto g = globals.find(s->name);
+                        if (g != globals.end()) target = g->second;
+                    }
+                }
+
+                if (target != UNKNOWN_TYPE &&
+                    target != "list" && target != "dict")
+                    throw std::runtime_error(
+                        "Cannot index-assign " + target);
+
+                if (target == "list" &&
+                    key != "integer" && key != UNKNOWN_TYPE)
+                    throw std::runtime_error(
+                        "Index must be integer, got " + key);
+
+                if (target == "dict" && key != "integer" &&
+                    key != "string" && key != UNKNOWN_TYPE)
+                    throw std::runtime_error(
+                        "Dict key must be string or integer, got " + key);
+
             } else if (s->t == "Assign") {
                 auto actual = infer(s->a, scope);
 
@@ -235,6 +307,8 @@ inline bool check_types(const NodeP& program) {
                          const std::vector<std::string>& arg_types)
                          -> std::string {
 
+        bool skip_prefix = skip_next_prefix;
+        skip_next_prefix = false;
         auto fi = functions.find(name);
         if (fi == functions.end()) return UNKNOWN_TYPE;
 
@@ -288,6 +362,17 @@ inline bool check_types(const NodeP& program) {
 
             return result;
 
+        } catch (const std::exception& e) {
+            return_stack.pop_back();
+            fn_active.erase(key);
+            if (skip_prefix) throw;
+            std::string sig = name + "(";
+            for (size_t i = 0; i < arg_types.size(); ++i) {
+                if (i) sig += ", ";
+                sig += arg_types[i];
+            }
+            sig += "): ";
+            throw std::runtime_error(sig + e.what());
         } catch (...) {
             return_stack.pop_back();
             fn_active.erase(key);
@@ -304,7 +389,9 @@ inline bool check_types(const NodeP& program) {
     for (const auto& entry : functions) {
         std::vector<std::string> args(
             entry.second->params.size(), UNKNOWN_TYPE);
+        skip_next_prefix = true;
         check_function(entry.first, args);
+        skip_next_prefix = false;
     }
 
     // Check top-level executable statements.

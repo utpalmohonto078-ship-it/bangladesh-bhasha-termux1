@@ -4,3 +4,46 @@ __pycache__/
 *.bak*
 cpp/dump_tokens
 cpp/dump_ast
+build/
+dist/
+*.egg-info/
+
+# Android / Gradle generated files
+.gradle/
+**/.gradle/
+local.properties
+*.apk
+*.aab
+
+# Python generated files
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Build and temporary artifacts
+*.tmp
+*.log
+.gitignore.backup-*
+
+# Local gitignore backup files
+.gitignore.backup-*
+.gitignore.pre-backup-rule-*
+.gitignore.safety-*
+
+# Signing keys and secrets
+*.jks
+*.keystore
+*.key
+*.pem
+.env
+keystore.properties
+signing.properties
+
+# Local backups
+*.before-*
+*.bridge-backup
+*.namespace-backup
+android-app/app/src/main/python/
+bangladesh-bhasha/
+*.backup-*

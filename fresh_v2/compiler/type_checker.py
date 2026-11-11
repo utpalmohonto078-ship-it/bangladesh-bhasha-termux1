@@ -37,16 +37,54 @@ def check_types(program):
                 return globals_types[node.name]
             return UNKNOWN
 
+        if isinstance(node, A.ListLit):
+            for element in node.items:
+                infer(element, scope)
+            return "list"
+        
+        if isinstance(node, A.DictLit):
+            for element in node.keys:
+                key_type = infer(element, scope)
+                if key_type not in ("integer", "string", UNKNOWN):
+                    raise TypeError(f"Dict key must be string or integer, got {key_type}")
+            for element in node.values:
+                infer(element, scope)
+            return "dict"
+        
+        if isinstance(node, A.Index):
+            container = infer(node.target, scope)
+            key_type = infer(node.index, scope)
+            if container not in (UNKNOWN, "list", "dict", "string"):
+                raise TypeError(f"Cannot index {container}")
+            if container in ("list", "string") and key_type not in ("integer", UNKNOWN):
+                raise TypeError(f"Index must be integer, got {key_type}")
+            if container == "dict" and key_type not in ("integer", "string", UNKNOWN):
+                raise TypeError(f"Dict key must be string or integer, got {key_type}")
+            return "string" if container == "string" else UNKNOWN
+        
         if isinstance(node, A.Call):
             for arg in node.args:
                 infer(arg, scope)
 
             if node.name in functions:
                 return check_function(node.name, [infer(a, scope) for a in node.args])
-            if node.name in ("ধরন", "type_of"):
+            if node.name in ("ধরন", "type_of", "নাও", "input",
+                             "বড়_হাতের", "upper", "ছোট_হাতের", "lower",
+                             "ছাঁটো", "strip", "প্রতিস্থাপন", "replace"):
                 return "string"
-            if node.name in ("দৈর্ঘ্য", "length"):
+            if node.name in ("দৈর্ঘ্য", "length", "নিচের_পূর্ণ", "floor",
+                             "উপরের_পূর্ণ", "ceil", "পূর্ণ_রাউন্ড", "round"):
                 return "integer"
+            if node.name in ("বর্গমূল", "sqrt"):
+                return "float"
+            if node.name in ("উল্টাও", "reverse", "সাজাও", "sort",
+                             "বাদ_দাও", "remove", "ঢোকাও", "insert",
+                             "মানসমূহ", "values"):
+                return "list"
+            if node.name in ("চাবি_আছে_কি", "has_key"):
+                return "boolean"
+            if node.name in ("আছে_কি", "contains"):
+                return "boolean"
             return UNKNOWN
 
         if isinstance(node, A.Unary):
@@ -65,6 +103,13 @@ def check_types(program):
             if op in ("+", "-", "*", "/", "%"):
                 if op == "+" and left == right == "string":
                     return "string"
+                if op == "+" and left == right == "list":
+                    return "list"
+                if op == "*":
+                    if (left in ("string", "list") and right == "integer") or (
+                        right in ("string", "list") and left == "integer"
+                    ):
+                        return "string" if "string" in (left, right) else "list"
 
                 if op == "+" and "string" in (left, right) and UNKNOWN in (left, right):
                     return UNKNOWN
@@ -189,7 +234,21 @@ def check_types(program):
                             f"to {expected}"
                         )
 
+            elif isinstance(stmt, A.IndexAssign):
+                infer(stmt.value, scope)
+                key_type = infer(stmt.index, scope)
+                target_type = scope.get(stmt.name, globals_types.get(stmt.name, UNKNOWN))
+                if target_type not in (UNKNOWN, "list", "dict"):
+                    raise TypeError(f"Cannot index-assign {target_type}")
+                if target_type == "list" and key_type not in ("integer", UNKNOWN):
+                    raise TypeError(f"Index must be integer, got {key_type}")
+                if target_type == "dict" and key_type not in ("integer", "string", UNKNOWN):
+                    raise TypeError(f"Dict key must be string or integer, got {key_type}")
+            
             elif isinstance(stmt, A.Print):
+                infer(stmt.value, scope)
+
+            elif isinstance(stmt, A.ExprStmt):
                 infer(stmt.value, scope)
 
             elif isinstance(stmt, A.If):

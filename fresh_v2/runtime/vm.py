@@ -1,7 +1,11 @@
-from .stdlib import BUILTINS
+import copy
+import math
+from .stdlib import BUILTINS, MAX_COLLECTION
+from .bytecode_validation import validate_program
 
 class VirtualMachine:
-    def __init__(self):
+    def __init__(self, input_fn=None):
+        self.input_fn = input if input_fn is None else input_fn
         self.variables = {}
         self.output = []
         self.stack = []
@@ -12,10 +16,8 @@ class VirtualMachine:
             raise RuntimeError("Stack underflow")
         return self.stack.pop()
 
-    def run(self, program):
-        if program.get("format") != "BB-V2-BC":
-            raise ValueError("Invalid BB V2 bytecode")
-
+    def run(self, program, trace_fn=None):
+        validate_program(program)
         code = program["code"]
         functions = program.get("functions", {})
         ip = 0
@@ -30,6 +32,10 @@ class VirtualMachine:
                 raise RuntimeError("Execution step limit exceeded")
 
             item = code[ip]
+
+            if trace_fn is not None:
+                trace_fn(ip, item, self)
+
             op = item["op"]
             next_ip = ip + 1
 
@@ -49,6 +55,9 @@ class VirtualMachine:
                 else:
                     raise RuntimeError(f"Undefined variable: {name}")
 
+            elif op == "POP":
+                self.pop()
+
             elif op == "STORE":
                 value = self.pop()
                 name = item["name"]
@@ -59,8 +68,74 @@ class VirtualMachine:
                 else:
                     self.variables[name] = value
 
+            elif op == "BUILD_LIST":
+                count = item["count"]
+                if count > MAX_COLLECTION:
+                    raise RuntimeError("List অতিরিক্ত বড়")
+                if count > len(self.stack):
+                    raise RuntimeError("Stack underflow")
+
+                items = [self.pop() for _ in range(count)][::-1]
+                self.stack.append(items)
+            
+            elif op == "BUILD_DICT":
+                count = item["count"]
+                if count > MAX_COLLECTION:
+                    raise RuntimeError("Dictionary অতিরিক্ত বড়")
+                required = count * 2
+                if required > len(self.stack):
+                    raise RuntimeError("Stack underflow")
+
+                pairs = []
+                for _ in range(count):
+                    value = self.pop()
+                    pairs.append((self.pop(), value))
+                mapping = {}
+                for key, value in reversed(pairs):
+                    if isinstance(key, bool) or not isinstance(key, (int, str)):
+                        raise RuntimeError("Dictionary চাবি String বা Integer হতে হবে")
+                    mapping[key] = value
+                self.stack.append(mapping)
+            
+            elif op == "INDEX":
+                index = self.pop()
+                target = self.pop()
+                if isinstance(target, dict):
+                    if isinstance(index, bool) or not isinstance(index, (int, str)):
+                        raise RuntimeError("Dictionary চাবি String বা Integer হতে হবে")
+                    if index not in target:
+                        raise RuntimeError("Dictionary-তে চাবি নেই")
+                    self.stack.append(target[index])
+                elif isinstance(target, (list, str)):
+                    if isinstance(index, bool) or not isinstance(index, int):
+                        raise RuntimeError("ইনডেক্স Integer হতে হবে")
+                    if index < 0 or index >= len(target):
+                        raise RuntimeError("ইনডেক্স সীমার বাইরে")
+                    self.stack.append(target[index])
+                else:
+                    raise RuntimeError("এই মানে ইনডেক্স করা যায় না")
+            
+            elif op == "STORE_INDEX":
+                value = self.pop()
+                index = self.pop()
+                target = self.pop()
+                if isinstance(target, dict):
+                    if isinstance(index, bool) or not isinstance(index, (int, str)):
+                        raise RuntimeError("Dictionary চাবি String বা Integer হতে হবে")
+                    if index not in target and len(target) >= MAX_COLLECTION:
+                        raise RuntimeError("Dictionary অতিরিক্ত বড়")
+                    target[index] = value
+                elif isinstance(target, list):
+                    if isinstance(index, bool) or not isinstance(index, int):
+                        raise RuntimeError("ইনডেক্স Integer হতে হবে")
+                    if index < 0 or index >= len(target):
+                        raise RuntimeError("ইনডেক্স সীমার বাইরে")
+                    target[index] = value
+                else:
+                    raise RuntimeError("এই মানে ইনডেক্স-এ মান বসানো যায় না")
+            
             elif op == "PRINT":
-                self.output.append(self.pop())
+                self.output.append(copy.deepcopy(self.pop()))
 
             elif op == "UNARY":
                 value = self.pop()
@@ -95,11 +170,17 @@ class VirtualMachine:
                         if isinstance(x, str) and isinstance(y, int) and not isinstance(y, bool) and len(x) * max(y, 0) > 1000000:
                             raise RuntimeError("String অতিরিক্ত বড়")
                 try:
+                    if operator == "*":
+                        for x, y in ((left, right), (right, left)):
+                            if isinstance(x, list) and isinstance(y, int) and not isinstance(y, bool) and len(x) * max(y, 0) > MAX_COLLECTION:
+                                raise RuntimeError("List অতিরিক্ত বড়")
                     result = operations[operator]()
                 except ZeroDivisionError:
                     raise RuntimeError("শূন্য দিয়ে ভাগ করা যায় না")
                 except (TypeError, ValueError, OverflowError):
                     raise RuntimeError(f"Operator {operator}: মানের ধরন অবৈধ")
+                if isinstance(result, list) and len(result) > MAX_COLLECTION:
+                    raise RuntimeError("List অতিরিক্ত বড়")
                 if isinstance(result, str) and len(result) > 1000000:
                     raise RuntimeError("String অতিরিক্ত বড়")
                 if isinstance(result, int) and not isinstance(result, bool) and result.bit_length() > 4096:
@@ -117,6 +198,8 @@ class VirtualMachine:
                 count = self.pop()
                 if isinstance(count, bool) or not isinstance(count, (int, float)):
                     raise RuntimeError("REPEAT count must be numeric")
+                if isinstance(count, float) and not math.isfinite(count):
+                    raise RuntimeError("REPEAT count must be a non-negative integer")
                 if int(count) != count or count < 0:
                     raise RuntimeError("REPEAT count must be a non-negative integer")
 
@@ -146,8 +229,8 @@ class VirtualMachine:
             elif op == "CALL":
                 name = item["name"]
                 argc = item["argc"]
-                args = [self.pop() for _ in range(argc)][::-1]
 
+                # Validate function and arity before changing the stack.
                 if name in functions:
                     info = functions[name]
                     params = info["params"]
@@ -158,29 +241,68 @@ class VirtualMachine:
                     if len(self.frames) >= 100:
                         raise RuntimeError("Call depth exceeded")
 
+                elif name in ("নাও", "input"):
+                    if argc not in (0, 1):
+                        raise RuntimeError(
+                            f"{name}: expected 0 or 1 arguments"
+                        )
+
+                elif name in BUILTINS:
+                    expected, function = BUILTINS[name]
+                    if argc != expected:
+                        raise RuntimeError(f"{name}: argument mismatch")
+
+                else:
+                    raise RuntimeError(f"Unknown function: {name}")
+
+                if argc > len(self.stack):
+                    raise RuntimeError("Stack underflow")
+
+                args = self.stack[-argc:] if argc else []
+
+                if name in functions:
+                    if argc:
+                        del self.stack[-argc:]
+
                     self.frames.append({
                         "return_ip": next_ip,
+                        "stack_base": len(self.stack),
                         "locals": dict(zip(params, args)),
                         "globals": set(info.get("globals", [])),
                         "loops": [],
                     })
                     next_ip = info["target"]
 
-                elif name in BUILTINS:
-                    expected, function = BUILTINS[name]
-                    if argc != expected:
-                        raise RuntimeError(f"{name}: argument mismatch")
-                    self.stack.append(function(*args))
+                elif name in ("নাও", "input"):
+                    prompt = args[0] if argc == 1 else ""
+                    result = self.input_fn(prompt)
+                    if argc:
+                        del self.stack[-argc:]
+                    self.stack.append(result)
 
                 else:
-                    raise RuntimeError(f"Unknown function: {name}")
+                    try:
+                        result = function(*args)
+                    except (TypeError, ValueError) as error:
+                        raise RuntimeError(str(error)) from None
+
+                    if argc:
+                        del self.stack[-argc:]
+                    self.stack.append(result)
 
             elif op == "RETURN":
-                result = self.pop()
                 if not self.frames:
                     raise RuntimeError("RETURN without CALL")
 
+                frame = self.frames[-1]
+
+                if len(self.stack) <= frame["stack_base"]:
+                    raise RuntimeError("Function return value missing")
+
+                result = self.pop()
                 frame = self.frames.pop()
+
+                del self.stack[frame["stack_base"]:]
                 self.stack.append(result)
                 next_ip = frame["return_ip"]
 

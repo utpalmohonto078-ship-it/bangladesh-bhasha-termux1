@@ -12,8 +12,8 @@ def compile_source(source):
     analyze(ast)
     return compile_ir(generate(ast))
 
-def run_source(source):
-    return VirtualMachine().run(compile_source(source))
+def run_source(source, input_fn=None):
+    return VirtualMachine(input_fn=input_fn).run(compile_source(source))
 
 def main():
     if len(sys.argv) != 2:

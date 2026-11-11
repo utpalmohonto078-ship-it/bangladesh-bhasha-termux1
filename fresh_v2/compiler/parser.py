@@ -9,6 +9,9 @@ class Parser:
     def current(self):
         return self.tokens[self.pos]
 
+    def peek(self):
+        return self.tokens[min(self.pos + 1, len(self.tokens) - 1)]
+
     def advance(self):
         token = self.current()
         if token.kind != "EOF":
@@ -139,6 +142,18 @@ class Parser:
             self.expect("END")
             return A.Function(name, params, body)
 
+        if kind == "IDENT" and self.peek().kind == "OP" and self.peek().value == "[":
+            name = self.advance().value
+            self.advance()
+            index = self.expression()
+            self.expect_op("]")
+            self.expect_op("=")
+            return A.IndexAssign(name, index, self.expression())
+        
+        if (kind == "IDENT" and self.peek().kind == "OP"
+                and self.peek().value == "("):
+            return A.ExprStmt(self.expression())
+
         if kind == "IDENT":
             name = self.advance().value
             self.expect_op("=")
@@ -160,6 +175,14 @@ class Parser:
         }
 
         while True:
+            if (self.current().kind == "OP"
+                    and self.current().value == "["):
+                self.advance()
+                index = self.expression()
+                self.expect_op("]")
+                left = A.Index(left, index)
+                continue
+            
             if (self.current().kind == "OP"
                     and self.current().value == "("):
                 if not isinstance(left, A.Variable):
@@ -216,6 +239,30 @@ class Parser:
         if token.kind == "OP" and token.value in ("-", "+"):
             return A.Unary(token.value, self.expression(4))
 
+        if token.kind == "OP" and token.value == "[":
+            items = []
+            if not (self.current().kind == "OP" and self.current().value == "]"):
+                items.append(self.expression())
+                while self.current().kind == "OP" and self.current().value == ",":
+                    self.advance()
+                    items.append(self.expression())
+            self.expect_op("]")
+            return A.ListLit(items)
+        
+        if token.kind == "OP" and token.value == "{":
+            keys, values = [], []
+            if not (self.current().kind == "OP" and self.current().value == "}"):
+                keys.append(self.expression())
+                self.expect_op(":")
+                values.append(self.expression())
+                while self.current().kind == "OP" and self.current().value == ",":
+                    self.advance()
+                    keys.append(self.expression())
+                    self.expect_op(":")
+                    values.append(self.expression())
+            self.expect_op("}")
+            return A.DictLit(keys, values)
+        
         if token.kind == "OP" and token.value == "(":
             value = self.expression()
             self.expect_op(")")

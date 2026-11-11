@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=77.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bangladesh-bhasha-ultimate"
+version = "2.0.1"
+description = "Bengali and English programming language with Python VM"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "LicenseRef-Proprietary"
+license-files = ["LICENSE"]
+authors = [
+    {name = "Utpal Kumar Mohonto"}
+]
+dependencies = []
+
+[project.scripts]
+bhasha = "bhasha_cli:main"
+
+[tool.setuptools]
+py-modules = [
+    "bb",
+    "bhasha_cli",
+    "repl",
+    "formatter",
+    "linter",
+    "validator",
+    "test_runner",
+    "debugger",
+    "package_manager",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["compiler", "compiler.*", "runtime", "runtime.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
